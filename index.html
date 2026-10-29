@@ -40,6 +40,7 @@ button,select,input,textarea{font:inherit;color:inherit}
 
 /* header */
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.topr{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:12px}
 .brand .mark{width:36px;height:36px;border-radius:8px;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font:600 17px/1 var(--mono);letter-spacing:-.02em}
 .brand h1{font-size:20px;font-weight:600;letter-spacing:-.01em}
@@ -151,6 +152,31 @@ mark{background:var(--mark);color:var(--mark-ink);padding:0 2px;border-radius:2p
 .editbox{display:flex;flex-direction:column;gap:6px}
 .editbox .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .nodata{padding:28px 18px;color:var(--dim);text-align:center}
+
+/* fold panels (6, 7) */
+.pfold{cursor:pointer;user-select:none}
+.panel.fold[data-open="false"] .phead{border-bottom:0}
+.panel.fold[data-open="false"] .pfbody{display:none}
+.pfbtn{all:unset;cursor:pointer;font:inherit}
+.pfbtn:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:3px}
+.pfold .chev{width:8px;height:8px;border-right:1.5px solid var(--dim);border-bottom:1.5px solid var(--dim);transform:rotate(-45deg);margin:0 4px 0 6px;transition:transform .15s}
+.panel.fold[data-open="true"] .pfold .chev{transform:rotate(45deg);margin-top:-4px}
+.pfold:hover .chev{border-color:var(--ink)}
+.optbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line2)}
+.optbar .spacer{flex:1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.segb{border:0;background:none;padding:5px 11px;font-size:12.5px;color:var(--dim);cursor:pointer}
+.segb+.segb{border-left:1px solid var(--line)}
+.segb[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink)}
+.tab .cnt{font:600 10.5px/1 var(--mono);background:var(--mark);color:var(--mark-ink);border-radius:9px;padding:3px 6px}
+.qcard h4{font-size:11.5px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px}
+.qcard h4:first-of-type{margin-top:2px}
+.qcard.wide{grid-column:1/-1}
+.qcard ul.cols{display:block;columns:2 420px;column-gap:28px}
+.qcard ul.cols li{break-inside:avoid;margin-bottom:6px}
+.qcard ul.cols+.hint{}
+.qcard li .refs{margin-left:4px;white-space:nowrap}
+.qcard .refs{font:500 11.5px/1.5 var(--mono);color:var(--dim)}
 
 /* QA */
 .qa{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
@@ -274,6 +300,7 @@ details.fx[open]>summary::before{transform:rotate(90deg)}
 
 .ver{display:inline-block;margin-left:8px;font-size:11px;opacity:.7;white-space:nowrap}
 </style>
+<script>try{var t=localStorage.getItem("ctg-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
 
 <div class="wrap" id="app">
   <header class="top">
@@ -281,10 +308,13 @@ details.fx[open]>summary::before{transform:rotate(90deg)}
       <div class="mark" aria-hidden="true"><img id="brandLogo" alt=""></div>
       <div>
         <h1>Code Table Generator</h1>
-        <div class="sub">Planning code responses for reconfiguring a lot, dual occupancy, material change of use and building work – Brisbane, Ipswich and Logan <span class="ver" title="Build stamp">v3.0 · 28 Oct 2026</span></div>
+        <div class="sub">Planning code responses for reconfiguring a lot, dual occupancy, material change of use and building work – Brisbane, Ipswich and Logan <span class="ver" title="Build stamp">v3.1 · 29 Oct 2026</span></div>
       </div>
     </div>
-    <button class="btn small" id="newJob" type="button">Start a new job</button>
+    <div class="topr">
+      <div class="seg" role="group" aria-label="Theme"><button type="button" class="segb" data-theme-set="auto" title="Follow the Windows / device setting">Auto</button><button type="button" class="segb" data-theme-set="light">Light</button><button type="button" class="segb" data-theme-set="dark">Dark</button></div>
+      <button class="btn small" id="newJob" type="button">Start a new job</button>
+    </div>
   </header>
 
   <!-- 1 Site -->
@@ -354,20 +384,25 @@ details.fx[open]>summary::before{transform:rotate(90deg)}
   </section>
 
   <!-- 6 Responses -->
-  <section class="panel" aria-labelledby="h6s">
-    <div class="phead"><span class="step">6</span><h2 id="h6s">Code responses</h2><span class="spacer"></span>
-      <label class="hint" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="showWording"> Show code wording</label>
-      <label class="hint" style="display:flex;gap:6px;align-items:center" for="vstyle">Verdicts
-        <select id="vstyle" style="width:auto;padding:4px 6px"><option value="full">Complies with AO1.1</option><option value="short">Complies</option></select></label></div>
-    <div class="tabs" id="tabs" role="tablist"></div>
-    <div id="tabbar"></div>
-    <div class="tscroll" id="tableOut"></div>
+  <section class="panel fold" id="p6" aria-labelledby="h6s" data-open="false">
+    <div class="phead pfold" data-pfold="out"><span class="step">6</span><h2 id="h6s"><button type="button" class="pfbtn" aria-expanded="false" aria-controls="b6">Code responses</button></h2><span class="spacer"></span><span class="hint" id="outSummary"></span><span class="chev" aria-hidden="true"></span></div>
+    <div class="pfbody" id="b6">
+      <div class="optbar">
+        <div class="seg" role="group" aria-label="Rows shown"><button type="button" class="segb" data-rowf="attn">Needs attention</button><button type="button" class="segb" data-rowf="all">All rows</button></div>
+        <span class="spacer"></span>
+        <label class="hint" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="showWording"> Show code wording</label>
+        <label class="hint" style="display:flex;gap:6px;align-items:center" for="vstyle">Verdicts
+          <select id="vstyle" style="width:auto;padding:4px 6px"><option value="full">Complies with AO1.1</option><option value="short">Complies</option></select></label></div>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <div id="tabbar"></div>
+      <div class="tscroll" id="tableOut"></div>
+    </div>
   </section>
 
   <!-- 7 QA -->
-  <section class="panel" aria-labelledby="h7s">
-    <div class="phead"><span class="step">7</span><h2 id="h7s">Check before lodging</h2><span class="spacer"></span><span class="hint" id="qaSummary"></span></div>
-    <div class="pbody"><div class="qa" id="qa"></div></div>
+  <section class="panel fold" id="p7" aria-labelledby="h7s" data-open="false">
+    <div class="phead pfold" data-pfold="qa"><span class="step">7</span><h2 id="h7s"><button type="button" class="pfbtn" aria-expanded="false" aria-controls="b7">Check before lodging</button></h2><span class="spacer"></span><span class="hint" id="qaSummary"></span><span class="chev" aria-hidden="true"></span></div>
+    <div class="pfbody" id="b7"><div class="pbody"><div class="qa" id="qa"></div></div></div>
   </section>
 
   <p class="hint" style="text-align:center;max-width:780px;margin:0 auto">Draft responses for review by a qualified town planner – not planning advice. Mapping is read from public Queensland Government and council services and may lag the planning scheme; confirm against the council property report. Code wording from <span id="schemeFoot"></span>. Engineering codes are answered by your civil engineer. Built by Meliora Engineering.</p>
@@ -2761,7 +2796,7 @@ const KINDLABEL = {you:"you", plan:"layout plan", map:"mapping", property:"prope
 const badgeClass = k => k==="you" ? "you" : k==="map" ? "map" : (k==="plan"||k==="plancouncil") ? "plan" : "report";
 function savedApplicant(){ try { return JSON.parse(lsGet("ctg.applicant")||"{}"); } catch(e){ return {}; } }
 function newBrief(){ return {da:{applicant:savedApplicant()}, project:{council:null, app:"ROL"}, site:{}, overlays:{}, rol:{lots_existing:1, lots:[]}, dual:{}, civil:{cer:true}, refs:{}, checks:{}, settings:{verdict:"full"}}; }
-const S = {brief:newBrief(), prov:{}, alts:{}, docs:[], map:null, mapBusy:false, plan:null, planBusy:false, ticks:{}, edits:{}, editing:null, tab:null, showWording:false, tickOpen:true, showAllCodes:false, calc:null, qcOpen:false, ovAll:false};
+const S = {brief:newBrief(), prov:{}, alts:{}, docs:[], map:null, mapBusy:false, plan:null, planBusy:false, ticks:{}, edits:{}, editing:null, tab:null, showWording:false, tickOpen:true, showAllCodes:false, calc:null, qcOpen:false, ovAll:false, open:{out:false, qa:false}, rowf:"attn"};
 function addAlt(path, value, p){ const a = S.alts[path] = S.alts[path] || []; if (!a.some(x=>same(x.value,value) && x.src===p.src)) a.push({value, src:p.src, kind:p.kind, pr:p.pr, ev:p.ev}); }
 function setFact(path, value, src, kind, ev){
   if (value===undefined || value===null || value==="" ) return;
@@ -3504,33 +3539,48 @@ function renderTicks(){
 // ------------------------------------------------------------------ render: 6 output
 function marksHtml(text){ return PENGINE.splitMarks(text).map(p=> !p.y ? esc(p.t) : (!p.t ? `<mark title="${esc(p.q||"")}">?</mark>` : `<mark title="${esc(p.q?"Check: "+p.q:"To complete")}">${esc(p.t)}</mark>`)).join(""); }
 function linesHtml(lines){ return (lines||[]).map((l,i)=>`<p${i===0?' class="head-line"':""}>${l===""?"&nbsp;":marksHtml(l)}</p>`).join(""); }
-function stats(t){ const s={C:0,NA:0,PO:0,TXT:0,Y:0,E:0}; t.rows.forEach(r=>{ if (r.t!=="row") return; const v=verdict(r.fin); if (s[v]!=null) s[v]++; if (r.fin.edited) s.E++; s.Y += ((r.fin.lines||[]).join(" ").match(/\[\[/g)||[]).length; }); return s; }
+function stats(t){ const s={C:0,NA:0,PO:0,TXT:0,Y:0,E:0,A:0}; t.rows.forEach(r=>{ if (r.t!=="row") return; const v=verdict(r.fin); if (s[v]!=null) s[v]++; if (r.fin.edited) s.E++; s.Y += ((r.fin.lines||[]).join(" ").match(/\[\[/g)||[]).length; if (needsAttn(r)) s.A++; }); return s; }
+// a row "needs attention" when it is a performance outcome, still to write, or carries a yellow item
+function needsAttn(r){ if (r.t!=="row") return false; const v = verdict(r.fin); return v==="PO" || v==="TXT" || /\[\[/.test((r.fin.lines||[]).join(" ")); }
+function setFold(k, open){ S.open[k] = open; const sec = $(k==="out"?"p6":"p7"); sec.dataset.open = open?"true":"false"; sec.querySelector(".pfbtn").setAttribute("aria-expanded", open?"true":"false"); }
+// table HTML for one code. opt.filter = only rows needing attention; opt.copy = no edit controls (clipboard)
+function tableHtml(t, opt){
+  const W = opt.W; const rows = opt.filter ? t.rows.filter(r=> r.t==="section" || needsAttn(r)) : t.rows;
+  const vis = rows.filter((r,i)=> r.t!=="section" || (rows[i+1] && rows[i+1].t==="row"));   // drop sections left empty by the filter
+  const span = {};
+  for (let i=0;i<vis.length;i++){ if (vis[i].t!=="row") continue; let j=i; while (j+1<vis.length && vis[j+1].t==="row" && vis[j+1].po===vis[i].po) j++; span[i]=j-i+1; for (let k=i+1;k<=j;k++) span[k]=0; i=j; }
+  const isOO = t.rows.some(r=>r.oo) && !t.rows.some(r=>r.t==="row" && !r.oo);
+  const head = isOO ? `<th style="width:${W?45:16}%">Overall outcome</th><th>Response</th>` : `<th style="width:20%">Performance outcome</th><th style="width:24%">Acceptable outcome</th><th>Response</th>`;
+  const body = vis.map((r,vi)=>{
+    if (r.t==="section") return `<tr class="sec"><td colspan="${isOO?2:3}">${esc(r.text.split("\n")[0])}</td></tr>`;
+    const k = t.key+"|"+r.i; const fin = r.fin; const v = verdict(fin);
+    const cls = `resp c-${v}${fin.edited?" edited":""}`;
+    const respCell = !opt.copy && S.editing===k
+      ? `<td class="resp"><div class="editbox"><textarea id="ed_lines" rows="6">${esc(fin.lines.join("\n"))}</textarea><div class="row"><button class="btn small primary" type="button" data-psave="${esc(k)}">Save</button><button class="btn small" type="button" data-pcancel="1">Cancel</button>${fin.edited?`<button class="btn small" type="button" data-prevert="${esc(k)}">Back to generated</button>`:""}<span class="hint">First line is the verdict. Wrap text in [[ ]] to keep it yellow.</span></div></div></td>`
+      : `<td class="${cls}">${linesHtml(fin.lines)}${opt.copy?"":`<button class="btn small edit" type="button" data-pedit="${esc(k)}">Edit</button>`}</td>`;
+    if (r.oo || isOO) return `<tr><td title="${esc(r.ao_text||"")}"><div class="num">${esc(r.ao||r.key)}</div>${W?`<div class="wording">${esc(r.ao_text)}</div>`:""}</td>${respCell}</tr>`;
+    const po = span[vi] ? `<td rowspan="${span[vi]}" title="${esc(r.po_text||"")}"><div class="num">${esc(r.po)}</div>${W?`<div class="wording">${esc(r.po_text||"")}</div>`:""}</td>` : "";
+    const ao = `<td title="${esc(r.ao_text||"")}"><div class="num">${esc(r.ao_none ? "No AO" : (r.ao||""))}</div>${W&&!r.ao_none?`<div class="wording">${esc(r.ao_text||"")}</div>`:""}</td>`;
+    return `<tr>${po}${ao}${respCell}</tr>`;
+  }).join("");
+  return `<table class="code"${opt.copy?"":' id="codeTable"'}><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
 function renderOut(){
   const ts = S.calc.tables;
+  setFold("out", S.open.out);
   $("showWording").checked = S.showWording; $("vstyle").value = getPath(S.brief,"settings.verdict")||"full";
-  if (!ts.length){ $("tabs").innerHTML=""; $("tabbar").innerHTML=""; $("tableOut").innerHTML=`<div class="nodata">${!council() ? "Look up the site in step 1 to start." : PLAN_OK(council()) ? "Tick at least one code in step 5." : "Planning code tables for this council are coming."}</div>`; return; }
-  $("tabs").innerHTML = ts.map(t=>{ const y = stats(t).Y; return `<button class="tab" role="tab" type="button" data-ptab="${esc(t.key)}" aria-selected="${S.tab===t.key}"><span class="n">${t.idx}</span>${esc(t.tpl.title.replace(/ code$/,""))}${y?'<span class="dot" title="Yellow items to check"></span>':""}</button>`; }).join("");
+  document.querySelectorAll("[data-rowf]").forEach(b=> b.setAttribute("aria-pressed", b.dataset.rowf===S.rowf ? "true" : "false"));
+  if (!ts.length){ $("outSummary").textContent = ""; $("tabs").innerHTML=""; $("tabbar").innerHTML=""; $("tableOut").innerHTML=`<div class="nodata">${!council() ? "Look up the site in step 1 to start." : PLAN_OK(council()) ? "Tick at least one code in step 5." : "Planning code tables for this council are coming."}</div>`; return; }
+  const all = ts.map(stats); const nRows = ts.reduce((a,t)=>a+t.rows.filter(r=>r.t==="row").length,0); const nA = all.reduce((a,s)=>a+s.A,0);
+  $("outSummary").textContent = `${ts.length} code${ts.length>1?"s":""} · ${nRows} responses · ${nA ? nA+" need attention" : "nothing to check"}`;
+  $("tabs").innerHTML = ts.map((t,i)=>{ const a = all[i].A; return `<button class="tab" role="tab" type="button" data-ptab="${esc(t.key)}" aria-selected="${S.tab===t.key}"><span class="n">${t.idx}</span>${esc(t.tpl.title.replace(/ code$/,""))}${a?`<span class="cnt" title="${a} row${a>1?"s":""} need attention">${a}</span>`:""}</button>`; }).join("");
   const t = ts.find(x=>x.key===S.tab); const s = stats(t);
   $("tabbar").innerHTML = `<div class="tabbar"><div style="flex:1;min-width:220px"><div style="font-weight:600">${t.idx}. ${esc(codeTitle(t.tpl))}</div><div class="hint">${esc(schemeOf())}${t.key.startsWith("NP_")?" · generic neighbourhood plan responses – finish by hand":""}</div></div>
     <div class="stats"><span class="tag ok">${s.C} comply</span><span class="tag">${s.NA} NA</span>${s.PO?`<span class="tag err">${s.PO} performance outcome</span>`:""}${s.TXT?`<span class="tag warn">${s.TXT} to write</span>`:""}${s.Y?`<span class="tag warn">${s.Y} yellow</span>`:""}${s.E?`<span class="tag acc">${s.E} edited</span>`:""}</div>
     ${s.E?`<button class="btn small" type="button" id="resetEdits">Undo my edits</button>`:""}</div>`;
-  const W = S.showWording; const rows = t.rows; const span = {};
-  for (let i=0;i<rows.length;i++){ if (rows[i].t!=="row") continue; let j=i; while (j+1<rows.length && rows[j+1].t==="row" && rows[j+1].po===rows[i].po) j++; span[i]=j-i+1; for (let k=i+1;k<=j;k++) span[k]=0; i=j; }
-  const isOO = rows.some(r=>r.oo) && !rows.some(r=>r.t==="row" && !r.oo);
-  const head = isOO ? `<th style="width:45%">Overall outcome</th><th>Response</th>` : `<th style="width:20%">Performance outcome</th><th style="width:24%">Acceptable outcome</th><th>Response</th>`;
-  const body = rows.map(r=>{
-    if (r.t==="section") return `<tr class="sec"><td colspan="${isOO?2:3}">${esc(r.text.split("\n")[0])}</td></tr>`;
-    const k = t.key+"|"+r.i; const fin = r.fin; const v = verdict(fin);
-    const cls = `resp c-${v}${fin.edited?" edited":""}`;
-    const respCell = S.editing===k
-      ? `<td class="resp"><div class="editbox"><textarea id="ed_lines" rows="6">${esc(fin.lines.join("\n"))}</textarea><div class="row"><button class="btn small primary" type="button" data-psave="${esc(k)}">Save</button><button class="btn small" type="button" data-pcancel="1">Cancel</button>${fin.edited?`<button class="btn small" type="button" data-prevert="${esc(k)}">Back to generated</button>`:""}<span class="hint">First line is the verdict. Wrap text in [[ ]] to keep it yellow.</span></div></div></td>`
-      : `<td class="${cls}">${linesHtml(fin.lines)}<button class="btn small edit" type="button" data-pedit="${esc(k)}">Edit</button></td>`;
-    if (r.oo || isOO) return `<tr><td><div class="num">${esc(r.ao||r.key)}</div><div class="wording" style="display:block">${esc(r.ao_text)}</div></td>${respCell}</tr>`;
-    const po = span[r.i] ? `<td rowspan="${span[r.i]}" title="${esc(r.po_text||"")}"><div class="num">${esc(r.po)}</div>${W?`<div class="wording">${esc(r.po_text||"")}</div>`:""}</td>` : "";
-    const ao = `<td title="${esc(r.ao_text||"")}"><div class="num">${esc(r.ao_none ? "No AO" : (r.ao||""))}</div>${W&&!r.ao_none?`<div class="wording">${esc(r.ao_text||"")}</div>`:""}</td>`;
-    return `<tr>${po}${ao}${respCell}</tr>`;
-  }).join("");
-  $("tableOut").innerHTML = `<table class="code" id="codeTable"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  const filter = S.rowf==="attn";
+  if (filter && !s.A){ $("tableOut").innerHTML = `<div class="nodata">All ${t.rows.filter(r=>r.t==="row").length} rows in this code are drafted with nothing to check. <button class="btn link" type="button" data-rowf="all">Show all rows</button></div>`; return; }
+  $("tableOut").innerHTML = tableHtml(t, {W:S.showWording, filter}) + (filter ? `<div class="hint" style="padding:10px 18px">Showing ${s.A} of ${t.rows.filter(r=>r.t==="row").length} rows – the rest comply or are not applicable. <button class="btn link" type="button" data-rowf="all">Show all rows</button> The Word download always has every row.</div>` : "");
   const ta = $("ed_lines"); if (ta) ta.focus();
 }
 
@@ -3610,22 +3660,36 @@ function computeQA(){
   return Q;
 }
 function renderQA(){
+  setFold("qa", S.open.qa);
   if (!S.calc.tables.length){ $("qa").innerHTML = `<div class="hint">QA appears once tables are generated.</div>`; $("qaSummary").textContent = ""; return; }
-  const Q = computeQA(); S.qa = Q;
-  const card = (title, items, tag, fmt) => `<div class="qcard"><h3>${title} <span class="tag ${items.length?tag:"ok"}">${items.length||"none"}</span></h3>${items.length?`<ul>${items.slice(0,60).map(fmt||(x=>`<li>${esc(x)}</li>`)).join("")}${items.length>60?`<li class="hint">+${items.length-60} more in the QA notes</li>`:""}</ul>`:`<div class="hint">Nothing flagged.</div>`}</div>`;
+  const Q = computeQA(); S.qa = Q; const F = S.calc.F;
+  const li = x=>`<li>${esc(x)}</li>`; const ul = (items, fmt)=> `<ul>${items.map(fmt||li).join("")}</ul>`;
+  const sub = (title, items, fmt)=> items.length ? `<h4>${title}</h4>${ul(items, fmt)}` : "";
+  const card = (title, n, tag, inner, wide)=> `<div class="qcard${wide?" wide":""}"><h3>${title} <span class="tag ${n?tag:"ok"}">${n||"none"}</span></h3>${n?inner:`<div class="hint">Nothing flagged.</div>`}</div>`;
+  const short = w=> w.replace(/^(\d+)\. /,"$1.");
+  // performance outcomes – fold that row's yellow checks into the same line
+  const poWhere = new Set(Q.po.map(x=>x.where));
+  const poHtml = Q.po.map(x=>{ const qs = Q.yellow.filter(y=>y.where===x.where && y.q).map(y=>y.q); const txt = x.text.length>150 ? x.text.slice(0,150).replace(/\s+\S*$/,"")+" …" : x.text;
+    return `<li><span class="k">${esc(short(x.where))}</span> ${esc(txt)}${qs.length?`<div class="hint">Check: ${esc(qs.join("; "))}</div>`:""}</li>`; });
+  // yellow items – group repeats (same fill-in or same question) into one line with the rows listed
+  const groups = []; const gi = {};
+  Q.yellow.filter(y=>!poWhere.has(y.where)).forEach(y=>{ const key = (y.q||y.stmt||"").toLowerCase().trim(); if (!(key in gi)){ gi[key] = groups.length; groups.push({stmt:String(y.stmt||"").replace(/\[\[|\]\]/g,""), q:y.q, refs:[]}); } const g = groups[gi[key]]; if (!g.refs.includes(short(y.where))) g.refs.push(short(y.where)); });
+  const fills = groups.filter(g=>!g.q), asks = groups.filter(g=>g.q);
+  const yHtml = asks.map(g=>`<li>${esc(g.q.charAt(0).toUpperCase()+g.q.slice(1))} <span class="refs">${esc(g.refs.join(" · "))}</span></li>`)
+    .concat(fills.length ? [`<li>Fill in: ${fills.map(g=>`${esc(g.stmt)} <span class="refs">${esc(g.refs.join(" · "))}</span>`).join("; ")}</li>`] : []);
+  const nFix = Q.warn.length + Q.write.length + Q.overlays.length + Q.da.length;
+  const cap = x=> String(x).charAt(0).toUpperCase()+String(x).slice(1);
+  const wRefs = Q.write.filter(w=>/^\d+\. \S+$/.test(w)).map(short), wOther = Q.write.filter(w=>!/^\d+\. \S+$/.test(w));
+  const writeHtml = (wRefs.length||wOther.length) ? `<h4>Rows to write</h4><ul>${wRefs.length?`<li>No standard response – write these by hand <div class="refs">${esc(wRefs.join(" · "))}</div></li>`:""}${wOther.map(li).join("")}</ul>` : "";
+  const notes = Q.assume.concat(Q.info);
   $("qa").innerHTML = [
-    card("Facts to check", Q.warn, "warn"),
-    card("Performance outcome arguments", Q.po, "err", x=>`<li><span class="k">${esc(x.where)}</span> ${esc(x.text)}</li>`),
-    card("Yellow items to check", Q.yellow, "warn", x=>`<li><span class="k">${esc(x.where)}</span> ${x.stmt?`‘${esc(x.stmt)}’`:""}${x.q?` – check: ${esc(x.q)}`:""}</li>`),
-    card("Rows to write", Q.write, "warn"),
-    Q.overlays.length ? card("Mapped overlays to check", Q.overlays, "warn") : "",
-    card("DA Form 1", Q.da, "warn"),
-    card("What Council looks at", Q.checks, "acc"),
-    card("Long responses", Q.long, "warn"),
-    card("Assumptions", Q.assume, "acc"),
-    card("Version and categories", Q.info, "acc")
+    card("Fix before lodging", nFix, "warn", sub("Facts", Q.warn) + writeHtml + sub("Mapped overlays", Q.overlays) + sub(F.is_bw ? "DA Form 2" : "DA Form 1", Q.da)),
+    card("Performance outcome arguments", Q.po.length, "err", `<ul>${poHtml.join("")}</ul>`),
+    card("What Council looks at", Q.checks.length, "acc", ul(Q.checks.map(cap))),
+    card("Yellow items to check", groups.length, "warn", `<ul class="cols">${yHtml.join("")}</ul><div class="hint" style="margin-top:8px">${Q.yellow.length} yellow items in the responses, grouped where the same question or fill-in repeats${Q.po.length?"; checks on performance outcome rows are listed with those rows":""}. Hover a yellow item in step 6 to see its check.</div>`, true),
+    card("Notes", notes.length + (Q.long.length?1:0), "acc", ul(notes) + (Q.long.length ? `<h4>Long responses (over 45 words)</h4><div class="refs">${esc(Q.long.map(x=>short(x.replace(/: (\d+) words$/," ($1)"))).join(" · "))}</div>` : ""), true)
   ].join("");
-  $("qaSummary").textContent = `${Q.warn.length} facts to check · ${Q.po.length} performance outcomes · ${Q.yellow.length} yellow`;
+  $("qaSummary").textContent = `${nFix} to fix · ${Q.po.length} performance outcome${Q.po.length===1?"":"s"} · ${groups.length} yellow`;
 }
 function renderBar(){
   const ts = S.calc.tables; const n = ts.reduce((a,t)=>a+t.rows.filter(r=>r.t==="row").length,0);
@@ -3716,7 +3780,7 @@ async function exportDocx(){
   saveFile(`${jobName()} - Code Responses (DRAFT).docx`, await D.Packer.toBlob(doc), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 }
 async function copyTable(){
-  const tbl = $("codeTable"); if (!tbl) return; const t = S.calc.tables.find(x=>x.key===S.tab);
+  const t = S.calc.tables.find(x=>x.key===S.tab); if (!t) return; const tbl = {outerHTML: tableHtml(t, {W:S.showWording, copy:true})};
   const tsv = t.rows.filter(r=>r.t==="row").map(r=>[r.po||"", r.ao||r.key, r.fin.lines.join(" ").replace(/\[\[(.*?)(\?\?.*?)?\]\]/g,"$1")].join("\t")).join("\n");
   try { if (window.ClipboardItem && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([tbl.outerHTML],{type:"text/html"}),"text/plain":new Blob([tsv],{type:"text/plain"})})]); else await navigator.clipboard.writeText(tsv); toast("Table copied"); }
   catch(e){ try { await navigator.clipboard.writeText(tsv); toast("Table copied as text"); } catch(e2){ toast("Copy isn't allowed here"); } }
@@ -3888,6 +3952,8 @@ root.addEventListener("click", e=>{
   const rl = e.target.closest("[data-relay]"); if (rl){ e.preventDefault(); const cur = MAP.iccRelayUrl(); const v = prompt("Ipswich ePlan relay URL (blank = default):", cur===MAP.ICC_RELAY_DEFAULT ? "" : cur); if (v!==null){ MAP.setIccRelayUrl(v.trim()); toast(v.trim() ? "Relay URL saved – look the address up again" : "Relay reset to the default"); } return; }
   const al = e.target.closest("[data-alt]"); if (al){ e.preventDefault(); chooseAlt(al.dataset.alt, +al.dataset.ai); return; }
   const a = e.target.closest("[data-papp]"); if (a){ setFact("project.app", a.dataset.papp, "You", "you"); S.ticks = {}; refresh(); return; }
+  const pf = e.target.closest("[data-pfold]"); if (pf && !e.target.closest("input,select,label,a")){ const k = pf.dataset.pfold; setFold(k, !S.open[k]); return; }
+  const rf = e.target.closest("[data-rowf]"); if (rf){ S.rowf = rf.dataset.rowf; S.editing = null; renderOut(); return; }
   const tb = e.target.closest("[data-ptab]"); if (tb){ S.tab = tb.dataset.ptab; S.editing = null; renderOut(); return; }
   const ed = e.target.closest("[data-pedit]"); if (ed){ S.editing = ed.dataset.pedit; renderOut(); return; }
   const sv = e.target.closest("[data-psave]"); if (sv){ const lines = $("ed_lines").value.replace(/\r/g,"").split("\n"); while (lines.length && lines[lines.length-1]==="") lines.pop(); S.edits[sv.dataset.psave] = {lines}; S.editing = null; refresh(); return; }
@@ -3931,6 +3997,12 @@ $("brandLogo").src = MELIORA_LOGO;
 $("newJob").addEventListener("click", ()=>{ if (Object.keys(S.prov).length && !confirmNew()) return; newJob(); toast("New job started"); });
 let newArm = 0; function confirmNew(){ if (Date.now()-newArm < 4000) return true; newArm = Date.now(); toast("Click again to clear this job"); return false; }
 $("docxBtn").addEventListener("click", exportDocx);
+// theme: auto (device setting) / light / dark – remembered per browser
+function applyTheme(t){ if (t==="light"||t==="dark") document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  try { if (t==="light"||t==="dark") localStorage.setItem("ctg-theme", t); else localStorage.removeItem("ctg-theme"); } catch(e){}
+  document.querySelectorAll("[data-theme-set]").forEach(b=> b.setAttribute("aria-pressed", b.dataset.themeSet===(t||"auto") ? "true" : "false")); }
+applyTheme(document.documentElement.dataset.theme || "auto");
+document.addEventListener("click", e=>{ const b = e.target.closest("[data-theme-set]"); if (b) applyTheme(b.dataset.themeSet); });
 $("qaBtn").addEventListener("click", ()=>saveFile(`${jobName()} - code responses QA.md`, qaMd(), "text/markdown"));
 $("daBtn").addEventListener("click", ()=> S.calc && S.calc.F && S.calc.F.is_bw ? exportDaForm2() : exportDaForm());
 $("jsonBtn").addEventListener("click", ()=>saveFile(`${jobName()} - code tables job.json`, JSON.stringify(jobJson(), null, 1), "application/json"));
