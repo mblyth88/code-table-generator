@@ -1,5 +1,8 @@
 # Code Table Generator – changelog
 
+## v3.2 – 12 Nov 2026
+- Moreton Bay addresses now read zone, precinct, local plan, PIA, TLPIs, 16 overlays, building height, road hierarchy and stormwater catchment from City of Moreton Bay open mapping (code tables to follow).
+
 ## v3.1 – 29 Oct 2026
 - Steps 6 and 7 now start collapsed with a one-line summary – click the heading to open them.
 - Step 6 shows only the rows that need attention (performance outcomes, rows to write, yellow items) with a count on each code tab. "All rows" shows the full table. Copy table and the Word download always include every row.
