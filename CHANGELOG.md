@@ -1,5 +1,8 @@
 # Code Table Generator – changelog
 
+## v3.3 – 12 Nov 2026
+- Moreton Bay code tables (MBRC Planning Scheme v9): reconfiguring a lot in the General residential (Suburban neighbourhood, Next generation, Coastal communities, Urban neighbourhood), Rural residential and Emerging community Transition zones, and dual occupancy (General residential zone code + Residential uses code), with lot checks, lot types, rear lots and the overlay (values and constraints) rows.
+
 ## v3.2 – 12 Nov 2026
 - Moreton Bay addresses now read zone, precinct, local plan, PIA, TLPIs, 16 overlays, building height, road hierarchy and stormwater catchment from City of Moreton Bay open mapping (code tables to follow).
 
