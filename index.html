@@ -308,7 +308,7 @@ details.fx[open]>summary::before{transform:rotate(90deg)}
       <div class="mark" aria-hidden="true"><img id="brandLogo" alt=""></div>
       <div>
         <h1>Code Table Generator</h1>
-        <div class="sub">Planning code responses for reconfiguring a lot, dual occupancy, material change of use and building work – Brisbane, Ipswich and Logan <span class="ver" title="Build stamp">v3.1 · 29 Oct 2026</span></div>
+        <div class="sub">Planning code responses for reconfiguring a lot, dual occupancy, material change of use and building work – Brisbane, Ipswich and Logan <span class="ver" title="Build stamp">v3.2 · 12 Nov 2026</span></div>
       </div>
     </div>
     <div class="topr">
@@ -1318,6 +1318,7 @@ async function services(parcel, council){
       tryQ("water_near", async()=> (await fsQuery(`${UUS}/UU_Water_OpenData/FeatureServer/21`, g, {distance:30, fields:"OBJECTID"})).length > 0)]);
     if (council==="BCC") await tryQ("sw_through", async()=> (await fsQuery(`${BCCS}/Stormwater_Pipe_Existing/FeatureServer/0`, gIn, {fields:"OBJECTID"})).length > 0);
   }
+  if (!["LCC","BCC","ICC"].includes(council)) return null;   // no water/sewer data wired for this council (e.g. Unitywater for Moreton Bay)
   out.source = council==="LCC" ? "Logan Water asset data" : "Urban Utilities open data" + (council==="BCC" ? " and Brisbane stormwater data" : "");
   return out;
 }
@@ -1460,6 +1461,94 @@ async function lcc(parcel){
   LCC_OVERLAYS.forEach(([ids, key, name])=>{ const hits = ids.flatMap(id=>by(id)); if (hits.length){ ov[key] = true; ov[key+"_detail"] = Array.from(new Set(hits.map(h=>h.Ovl2_Desc||h.OVL2_DESC||h.Description||"").filter(Boolean))).join(", ") || name; } });
   const rh = by(328)[0]; if (rh) ov.road_class = rh.Road_Type;
   out.overlays = ov; out.overlay_names = Object.fromEntries(LCC_OVERLAYS.map(([i,k,n])=>[k,n]));
+  return out;
+}
+
+// ---------------------------------------------------------------- MBRC (City of Moreton Bay – MBRC Planning Scheme open data on ArcGIS Online)
+// Zones are parcel-based and carry the zone precinct, local plan and local plan precinct. Polygon overlays are read with the
+// parcel shrunk 0.5m so a boundary that only touches doesn't count; line and point layers use a search distance.
+// [key, label, service, {kind:"near", dist, where, skip, label}]   key "_x" = detail only, not an overlay tick
+const MBS = "https://services-ap1.arcgis.com/152ojN3Ts9H3cdtl/ArcGIS/rest/services";
+const MBRC_LAYERS = [
+  ["ass", "Acid sulfate soils", "MBRC_PlanningScheme_OM_AcidSulfateSoils"],
+  ["environmental", "Environmental areas", "OM_Environmental_Areas_WebMercator_OpenData"],
+  ["bushfire", "Bushfire hazard", "MBRC_PlanningScheme_OM_BushfireHazard"],
+  ["coastal", "Coastal hazard", "MBRC_PlanningScheme_OM_CoastalHazardErosion"],
+  ["coastal", "Coastal hazard", "OM_Coastal_Hazard_Storm_Tide_WebMercator_OpenData"],
+  ["extractive", "Extractive resources", "MBRC_PlanningScheme_ExtractiveResources_Overlay"],
+  ["flood", "Flood hazard", "OM_Flood_Hazard_WebMercator_OpenData", {skip:/north lakes locality/i}],
+  ["overland", "Overland flow path", "OM_Overland_Flow_Path_WebMercator_OpenData"],
+  ["heritage", "Heritage and landscape character", "MBRC_PlanningScheme_HeritageAreas"],
+  ["heritage", "Heritage and landscape character", "MBRC_PlanningScheme_HeritageLandscape_SignificantTree", {kind:"near", dist:1, label:a=>"Significant tree"+(a.TREE_TYPE?" ("+a.TREE_TYPE+")":"")}],
+  ["infra_buffer", "Infrastructure buffers", "OM_Infrastructure_Buffers_polygons_WebMercator_OpenData", {label:a=>a.OVL2_DESC + (a.Name ? " ("+a.Name+")" : "")}],
+  ["infra_buffer", "Infrastructure buffers", "OM_Infrastructure_Buffers_lines_WebMercator_OpenData", {kind:"near", dist:1}],
+  ["infra_buffer", "Infrastructure buffers", "OM_Infrastructure_Buffers_points_WebMercator_OpenData", {kind:"near", dist:1, label:a=>a.OVL2_DESC + (a.Name ? " ("+a.Name+")" : "")}],
+  ["landslide", "Landslide hazard", "MBRC_PlanningScheme_LandslideHazardOverlay"],
+  ["riparian", "Riparian and wetland setbacks", "OM_Riparian_Wetland_Setbacks_WebMercator_OpenData"],
+  ...[50,30,20].map(d=>["riparian", "Riparian and wetland setbacks", "MBRC_PlanningScheme_Riparian_Wetland_Setbacks_Overlay_Waterways", {kind:"near", dist:d, where:"Dev_SetBack_m="+d, label:a=>`${a.OVL2_DESC}${a.Name&&String(a.Name).trim()?" – "+String(a.Name).trim():""} (${a.Dev_SetBack_m}m setback)`}]),
+  ["scenic", "Scenic amenity", "MBRC_PlanningScheme_ScenicAmenityOverlay"],
+  ["noise", "Transport noise corridors", "MBRC_PlanningScheme_TransportNoiseOverlay"],
+  ["env_offsets", "Environmental offsets (receiving areas)", "MBRC_PlanningScheme_EnvironmentalOffsets_Overlay"],
+  ["community_hub", "Community activities and neighbourhood hubs", "OM_CommunityActivitiesNeighbourhoodHubs_WebMercator_OpenData"],
+  ["active_transport", "Active transport", "MBRC_PlanningScheme_OM_ActiveTransport", {kind:"near", dist:15}],
+  ["_height", "Building heights", "OM_Building_Heights_WebMercator_OpenData"],
+  ["_height_exception", "Building height exception", "MBRC_PlanningScheme_OM_BuildingHeights_Exceptions"],
+  ["_rr_lot_size", "Rural residential lot sizes", "OM_Rural_Res_Lot_Sizes_WebMercator_OpenData"],
+  ["_centre_walk", "Centre walking distance", "MBRC_PlanningScheme_OM_CentreWalkingDistance"],
+  ["_train_walk", "Train station walking distance", "MBRC_PlanningScheme_OM_WalkingDistance_TrainStation"],
+  ["_sw_catchment", "Stormwater catchment", "MBRC_PlanningScheme_StormwaterCatchmentsOverlay"],
+  ["_road", "Road hierarchy", "OM_Road_Hierarchy_WebMercator_OpenData", {kind:"near", dist:20, fields:"OVL2_DESC,Hierarchy,ROAD_NAME"}]
+];
+const MBRC_ROAD_RANK = ["Motorway","State arterial","State sub-arterial","Council arterial","Council sub-arterial","Council district collector","Council local collector"];
+const MBRC_ZONE_KEY = {"General residential":"GR","Rural residential":"RR","Emerging community":"EC","Rural":"RU","Township":"TS","Centre":"CEN","Industry":"IND","Community facilities":"CF","Recreation and open space":"ROS","Environmental management and conservation":"EMC","Extractive industry":"EI","Limited development":"LD"};
+async function mbQuery(svc, layer, geom, opt){
+  opt = opt||{};
+  const p = {where:opt.where||"1=1", geometry:JSON.stringify(geom), geometryType:"esriGeometryPolygon", inSR:4326, spatialRel:"esriSpatialRelIntersects", outFields:opt.fields||"*", returnGeometry:"false", f:"json"};
+  if (opt.dist){ p.distance = opt.dist; p.units = "esriSRUnit_Meter"; }
+  const j = await getJSON(`${MBS}/${svc}/FeatureServer/${layer||0}/query`, {method:"POST", body:new URLSearchParams(p), timeout:25000});
+  return (j.features||[]).map(f=>f.attributes);
+}
+async function mbrc(parcel){
+  const g = parcel.geometry, gIn = shrink(g, 0.5);
+  const out = {source:"City of Moreton Bay – MBRC Planning Scheme open mapping", failed:[], failed_keys:[]};
+  const cap = s => String(s||"").trim().replace(/^(\w)/, m=>m.toUpperCase());
+  const title = s => String(s||"").trim().toLowerCase().replace(/\b(\w)/g, m=>m.toUpperCase());
+  const [zr, pia, tl0, tl3, ...ovr] = await Promise.all([
+    mbQuery("ZM_Zones_WebMercator_OpenData", 0, gIn, {fields:"LVL1_ZONE,ZONE_PREC,LP,LP_PREC"}).catch(()=>{ out.failed.push("zone"); return null; }),
+    mbQuery("LGIP_Priority_Infrastructure_Areas_FS_Sept_2026", 0, gIn, {fields:"LGIP"}).catch(()=>{ out.failed.push("pia"); return null; }),
+    mbQuery("PlanningScheme_Temporary_Local_Planning_Instruments", 0, gIn, {fields:"TLPI_Reference,TLPI_Name"}).catch(()=>[]),
+    mbQuery("PlanningScheme_Temporary_Local_Planning_Instruments", 3, gIn, {fields:"TLPI_Reference,TLPI_Name"}).catch(()=>[]),
+    ...MBRC_LAYERS.map(([k,,svc,o])=>{ o = o||{}; return mbQuery(svc, 0, o.kind==="near" ? g : gIn, {dist:o.dist, where:o.where, fields:o.fields}).catch(()=>{ out.failed.push("ov_"+k.replace(/^_/,"")); out.failed_keys.push(k); return null; }); })
+  ]);
+  if (zr && zr.length){
+    const z = zr[0]; const zn = String(z.LVL1_ZONE||"").trim();
+    out.zone_name = cap(zn) + " zone"; out.zone = MBRC_ZONE_KEY[zn] || zn;
+    const pr = String(z.ZONE_PREC||"").trim(); if (pr && !/^none$/i.test(pr) && pr.toLowerCase()!==zn.toLowerCase()) out.precinct = cap(pr).replace(/\s*precinct$/i,"");
+    if (z.LP && String(z.LP).trim()){ out.np_name = String(z.LP).trim() + " local plan"; const lpp = String(z.LP_PREC||"").trim(); if (lpp) out.np_precinct = cap(lpp); }
+    const zs = Array.from(new Set(zr.map(a=>String(a.LVL1_ZONE||"").trim()+(a.ZONE_PREC&&String(a.ZONE_PREC).trim()?" – "+String(a.ZONE_PREC).trim():""))));
+    if (zs.length > 1) out.split_zone = zs.slice(1);
+  }
+  if (pia) out.pia = pia.length > 0;
+  const tl = [].concat(tl0||[], tl3||[]); if (tl.length) out.tlpi = Array.from(new Set(tl.map(t=>`${t.TLPI_Reference||"TLPI"} – ${t.TLPI_Name||""}`.trim())));
+  const ov = {}, det = {}, names = {};
+  MBRC_LAYERS.forEach(([k,label,,o], i)=>{
+    o = o||{}; if (k[0]!=="_") names[k] = names[k] || label;
+    const rows = (ovr[i]||[]).filter(a=>!(o.skip && o.skip.test(a.OVL2_DESC||"")));
+    if (!rows.length) return;
+    if (k==="_road"){
+      const rk = c=>{ const n = MBRC_ROAD_RANK.findIndex(r=>r.toLowerCase()===c.replace(/^proposed\s+/i,"").toLowerCase()); return (n<0?99:n) + (/^proposed/i.test(c)?0.5:0); };
+      const cls = Array.from(new Set(rows.map(a=>String(a.OVL2_DESC||a.Hierarchy||"").trim()).filter(Boolean))).sort((a,b)=>rk(a)-rk(b));
+      if (cls[0]) ov.road_class = cap(cls[0]);
+      const list = Array.from(new Set(rows.map(a=>`${a.ROAD_NAME?title(a.ROAD_NAME)+" – ":""}${String(a.OVL2_DESC||a.Hierarchy||"").trim()}`)));
+      if (list.length > 1 || (rows[0] && rows[0].ROAD_NAME)) ov.road_class_detail = "Road hierarchy within 20m of the site: "+list.join(", ");
+      return; }
+    const lab = o.label || (a=>a.OVL2_DESC || a.CAT_DESC || label);
+    det[k] = (det[k]||[]).concat(rows.map(a=>String(lab(a)||"").trim()).filter(Boolean));
+    if (k[0]!=="_") ov[k] = true;
+  });
+  Object.keys(det).forEach(k=>{ const v = Array.from(new Set(det[k])).join(", "); if (k[0]==="_") out[k.slice(1)] = v; else ov[k+"_detail"] = v; });
+  out.failed_keys = Array.from(new Set(out.failed_keys)); out.failed = Array.from(new Set(out.failed));
+  out.overlays = ov; out.overlay_names = names;
   return out;
 }
 
@@ -1641,7 +1730,9 @@ async function lookup(address, opt){
   else if (res.council==="LCC") jobs.push(lcc(res.parcel).then(p=>res.planning=p).catch(e=>res.warnings.push("Logan mapping couldn't be read: "+e.message)));
   else if (res.council==="ICC") jobs.push(icc(res.parcel).then(p=>{ res.planning=p; if (p.unavailable) res.warnings.push(`Ipswich mapping couldn't be read${p.relay_error?` (relay: ${p.relay_error})`:""} – zone and overlays are NOT checked. Enter them from the ICC property report or your planning report, or fix the relay link in step 4.`); else if (p.relay && p.relay.stale) res.warnings.push(`The Ipswich relay file is ${p.relay.age_h} hours old (last refreshed ${p.relay.fetched}) – the NAS refresh may have stopped. Overlays were read with its tokens, but confirm against the ICC property report and check the relay.`);
   if (p.failed && p.failed.length && !p.unavailable) res.warnings.push(`${p.failed.length} Ipswich ePlan layer${p.failed.length>1?"s":""} didn't answer (${p.failed.slice(0,6).join(", ")}${p.failed.length>6?"…":""}) – confirm those overlays against the property report.`); }).catch(e=>res.warnings.push("Ipswich mapping couldn't be read: "+e.message)));
-  else res.warnings.push(`${res.parcel.council_name||"This council"} isn't covered yet – Brisbane, Ipswich and Logan are.`);
+  else if (res.council==="MBRC") jobs.push(mbrc(res.parcel).then(p=>{ res.planning=p; if (p.tlpi) res.warnings.push(`The site is inside ${p.tlpi.join(" and ")} – the TLPI overrides parts of the planning scheme. Check its provisions before relying on the code responses.`);
+    if (p.failed.length > 10) res.warnings.push("Moreton Bay mapping didn't answer – zone and overlays need to come from your reports or the property report."); }).catch(e=>res.warnings.push("Moreton Bay mapping couldn't be read: "+e.message)));
+  else res.warnings.push(`${res.parcel.council_name||"This council"} isn't covered yet – Brisbane, Ipswich, Logan and Moreton Bay mapping are.`);
   jobs.push(slope({rings:[res.parcel.geometry.rings[0]]}).then(s=>res.slope=s).catch(()=>{}));
   jobs.push(siteContext(res.parcel).then(s=>res.context=s).catch(e=>res.warnings.push("Road frontage and easements couldn't be read from the cadastre: "+e.message)));
   jobs.push(services(res.parcel, res.council).then(s=>res.services=s).catch(()=>{}));
@@ -1651,7 +1742,7 @@ async function lookup(address, opt){
   return res;
 }
 
-return {_icc:icc, iccRelayUrl, setIccRelayUrl, ICC_RELAY_DEFAULT, lotPlansIn, stateChecks, siteContext, services, findAddress, suggest, geocode, parcelAt, parcelByLotPlan, lookup, toLocal, aerialUrl, COUNCIL_OF};
+return {_icc:icc, _mbrc:mbrc, iccRelayUrl, setIccRelayUrl, ICC_RELAY_DEFAULT, lotPlansIn, stateChecks, siteContext, services, findAddress, suggest, geocode, parcelAt, parcelByLotPlan, lookup, toLocal, aerialUrl, COUNCIL_OF};
 })();
 if (typeof module!=="undefined") module.exports = MAP;
 </script>
@@ -2889,6 +2980,7 @@ function applyMap(r){
     const ov = pl.overlays||{}; if (ov.road_class) setFact("overlays.road_class", ov.road_class, src, "map");
     const fk = pl.failed_keys||[];
     if (r.council==="ICC" && !pl.unavailable){ if (fk.includes("noise") ? ov.noise : true) setFact("checks.noise_corridor", !!ov.noise, src, "map"); if (ov.heritage) setFact("overlays.heritage", true, src, "map"); if (ov.road_class_detail) setFact("overlays.road_class_detail", ov.road_class_detail, src, "map"); }
+    if (r.council==="MBRC" && !fk.includes("noise")) setFact("checks.noise_corridor", !!ov.noise, src, "map", ov.noise_detail||"");
     if (!pl.unavailable) (OV_LIST[r.council]||[]).forEach(([k])=>{ if (fk.includes(k) && !ov[k]) return; setFact("overlays."+k, !!ov[k], src, "map"); if (ov[k+"_detail"]) setFact("overlays."+k+"_detail", ov[k+"_detail"], src, "map"); });
   }
 }
@@ -3105,7 +3197,10 @@ const ICC_OV = [["biodiversity","Biodiversity (OV1)"],["waterway","Waterway corr
   ["regional_infra","Regional infrastructure (OV13)"],["extractive","Extractive resources"],["motorsport","Motorsport activities"],["water_catchment","Water resource catchments (OV15)"]];
 const LCC_OV = [["ass","Acid sulfate soils",null,true],["biodiversity","Biodiversity areas"],["bushfire","Bushfire hazard"],["extractive","Extractive resources"],["flood","Flood hazard (TLPI 1/2024)",null,true],["greenbank","Greenbank Training Area buffer"],
   ["heritage","Heritage"],["landslide","Landslide hazard and steep slope"],["regional_infra","Regional infrastructure corridors and substations"],["airport","Strategic airport and environs"],["water_catchment","Water resource catchments"],["waterway","Waterway corridors and wetlands"]];
-const OV_LIST = {ICC:ICC_OV, LCC:LCC_OV};
+const MBRC_OV = [["ass","Acid sulfate soils",null,true],["environmental","Environmental areas"],["bushfire","Bushfire hazard"],["coastal","Coastal hazard"],["extractive","Extractive resources"],
+  ["flood","Flood hazard",null,true],["overland","Overland flow path",null,true],["heritage","Heritage and landscape character"],["infra_buffer","Infrastructure buffers"],["landslide","Landslide hazard"],
+  ["riparian","Riparian and wetland setbacks"],["scenic","Scenic amenity"],["noise","Transport noise corridors"],["env_offsets","Environmental offsets"],["community_hub","Community activities and neighbourhood hubs"],["active_transport","Active transport"]];
+const OV_LIST = {ICC:ICC_OV, LCC:LCC_OV, MBRC:MBRC_OV};
 const ICC_OV_NAMES = {biodiversity:"Biodiversity (OV1)", waterway:"Waterway corridors and wetlands (OV2)", character:"Character places and areas (OV3)", heritage:"Heritage (OV3)", airport:"Wildlife attraction and lighting – airport (OV7B)", mining:"Mining influence areas (OV8)", bushfire:"Bushfire prone areas (OV10)", landslide:"Difficult topography and landslide (OV11)", flood:"Flood risk (OV12)", overland:"Overland flow (OV12)", regional_infra:"Regional infrastructure (OV13)"};
 const ENG_CODES = {
   BCC:["Filling and excavation code","Infrastructure design code","Stormwater code"],
@@ -3238,7 +3333,7 @@ const stHtml = id => { const s = ST[id]; return s && s.msg ? `${s.busy?'<span cl
 // ------------------------------------------------------------------ render: 1 site
 function renderSite(){
   const r = S.map; const el = $("siteOut");
-  if (!r){ el.innerHTML = `<div class="hint" style="margin-top:10px">Enter the street address or lot on plan. The tool reads the Queensland cadastre, ${["Brisbane","Logan"].join(" and ")} City Plan mapping (Ipswich where it's open), and the state elevation model for slope.</div>`; return; }
+  if (!r){ el.innerHTML = `<div class="hint" style="margin-top:10px">Enter the street address or lot on plan. The tool reads the Queensland cadastre, Brisbane, Logan and Moreton Bay planning scheme mapping (Ipswich where it's open), and the state elevation model for slope.</div>`; return; }
   const P = r.parcel||{}, pl = r.planning||{}; const c = r.council;
   let img = "";
   if (r.aerial && P.geometry && P.geometry.rings){
@@ -3253,15 +3348,17 @@ function renderSite(){
     ["Existing easements", r.context && r.context.easements ? (r.context.easements.length ? r.context.easements.join(", ") : "None in the cadastre") : null],
     ["Services", r.services ? [r.services.sewer_through ? "sewer main crosses the site" : r.services.sewer_near ? "sewer main nearby" : "no sewer main within 40m", r.services.mh_on_site ? "sewer maintenance hole on the site" : null, r.services.water_near ? "water main in the street" : "no water main within 30m", r.services.sw_through ? "council stormwater pipe crosses the site" : null].filter(Boolean).join(" · ") : null],
     ["Ground levels", r.slope && r.slope.zmax!=null ? `Highest ${(+r.slope.zmax).toFixed(2)}m AHD · lowest ${(+r.slope.zmin).toFixed(2)}m AHD (state elevation model, approx.)` : null],
-    ["Road", pl.overlays && pl.overlays.road_class ? pl.overlays.road_class : null]].filter(x=>x[1]);
+    ["Road", pl.overlays && pl.overlays.road_class ? pl.overlays.road_class + (pl.overlays.road_class_detail ? " ("+pl.overlays.road_class_detail.replace(/^Road hierarchy within 20m of the site: /,"")+")" : "") : null],
+    ["Building height", pl.height ? pl.height + (pl.height_exception ? " · exception "+pl.height_exception : "") : null], ["Rural residential lot size", pl.rr_lot_size || null],
+    ["Walking distance", [pl.centre_walk, pl.train_walk].filter(Boolean).join(" · ") || null], ["Stormwater catchment", pl.sw_catchment || null]].filter(x=>x[1]);
   const ovs = mappedOverlays();
   const chips = ovs.length ? ovs.map(o=>`<span class="chip ${o.eng?"eng":"on"}" title="${esc(o.detail||"")}">${esc(o.name)}${o.eng?" · engineer":""}</span>`).join("") : (pl.overlays && !(pl.failed||[]).some(f=>/^ov_/.test(f)) ? `<span class="chip">No overlays mapped</span>` : "");
   const repLots = (S.docs.find(d=>d.lot_plans && d.lot_plans.length>1)||{}).lot_plans; const looked = (P.lotplans || [P.lotplan]).join(",");
   const multi = repLots && repLots.slice().sort().join(",") !== (P.lotplans||[P.lotplan]).slice().sort().join(",") ? `<div class="nt warn" style="margin-top:10px">Your report lists ${repLots.length} lots (${esc(repLots.join(", "))}); the lookup used ${esc(looked)}. <button class="btn small" type="button" id="lookupLots">Look up all ${repLots.length} lots</button></div>` : "";
   const choices = (r.choices && r.choices.length > 1 ? `<div class="choices"><div class="hint">Several matches – pick the right one:</div>${r.choices.slice(0,8).map((x,i)=>`<button class="btn small" type="button" data-pick="${i}">${esc(x.address)} – ${esc(x.lotplan)}</button>`).join("")}</div>` : "") + multi;
   const warns = (r.warnings||[]).concat(pl.split_zone ? [`The parcel is split between zones (also ${pl.split_zone.join(", ")}) – check the zone boundary against the layout.`] : []).concat(pl.failed && pl.failed.length && !pl.unavailable ? [pl.failed.length > 8 ? `${COUNCILS[c]||"Council"} mapping didn't answer – zone and overlays need to come from your reports or the property report.` : `Some mapping layers didn't answer (${pl.failed.map(f=>f.replace(/^ov_/,"").replace(/_/g," ")).join(", ")}) – confirm those against the property report.`] : []);
-  const notCovered = c && !PLAN_OK(c) ? [`${r.council_name||c} isn't covered yet – this tool drafts Brisbane, Ipswich and Logan codes.`] : [];
-  const zoneOdd = pl.zone && !(ZONES[c]||{})[pl.zone] ? [`The site is in the ${pl.zone_name||pl.zone} – this tool drafts residential zones only (low density, low-medium density, character).`] : [];
+  const notCovered = c && !PLAN_OK(c) ? [c==="MBRC" ? "Moreton Bay code tables are being built – the mapping above is read, but code responses aren't drafted yet." : `${r.council_name||c} isn't covered yet – this tool drafts Brisbane, Ipswich and Logan codes.`] : [];
+  const zoneOdd = pl.zone && PLAN_OK(c) && !(ZONES[c]||{})[pl.zone] ? [`The site is in the ${pl.zone_name||pl.zone} – this tool drafts residential zones only (low density, low-medium density, character).`] : [];
   el.innerHTML = `<div class="sitecard">${img||"<div></div>"}<div><div class="kv">${kv.map(([k,v])=>`<div><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("")}</div>
     ${chips?`<div class="k" style="margin-top:12px;font-size:11.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em">Overlays</div><div class="chips">${chips}</div>`:""}
     ${choices}${warns.concat(notCovered, zoneOdd).length?`<div class="nts" style="margin-top:12px">${warns.concat(notCovered, zoneOdd).map(w=>`<div class="nt warn">${esc(w)}</div>`).join("")}</div>`:""}
